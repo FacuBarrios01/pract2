@@ -3,8 +3,12 @@
 #include <stdlib.h>
 #include <string.h>
 #include <limits.h>
+#include <omp.h>
 
 typedef unsigned char Byte;
+float t1;
+float t2;
+
 
 // Read a P6 ppm image file, allocating memory
 // It returns NULL if there is an error
@@ -21,7 +25,7 @@ Byte *read_ppm(char file[],int *width,int *height) {
     if (strcmp(tipo,"P6\n")) {
       fprintf(stderr,"ERROR: \"%s\" should be a PPM of type P6 instead of %s\n",file,tipo);
     } else {
-      fscanf(f," #%*[^\n]"); // skip possible comment
+      fscanf(f," #%*[^\n]");                  // skip possible comment
       fscanf(f,"%d%d%*d%*c",width,height);
       n=(size_t)*width**height*3;
       a=(Byte*)malloc(n*sizeof(Byte));
@@ -89,6 +93,8 @@ void swap( Byte a1[],Byte a2[],int rw,int rh,int w ) {
 
 // Process image a, of width w and height h, considering horizontal blocks of
 // bh rows and vertical blocks of bw columns */
+t1 = omp_get_wtime();
+
 void process( int w,int h,Byte a[], int bw,int bh ) {
   int x,y, x2,y2, mx,my,min, d;
 
@@ -120,6 +126,9 @@ void process( int w,int h,Byte a[], int bw,int bh ) {
     swap( &a[3*x],&a[3*mx],bw,h,w );
   }
 }
+
+t2 = omp_get_wtime();
+printf("time: %f \n", t2 - t1);
 
 int main(int argc,char *argv[]) {
   char option,*s, *in = "in.ppm", *out = "out.ppm";
