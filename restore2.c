@@ -55,9 +55,11 @@ void write_ppm(char file[],int w,int h,Byte *c) {
 // Compute the difference between two (horizontal or vertical) lines of an image
 // a1 and a2 are the two lines. Each of them is n pixels long
 int distance( int n, Byte a1[], Byte a2[], int stride ) {
+
   int d,i,j, r,g,b;
   stride *= 3;
   d = 0;
+  // #pragma omp parallel for private(j,r,g,b) reduction(+:d)
   for ( i = 0 ; i < n ; i++ ) {
     j = i * stride;
     r = (int)a1[j]   - a2[j];   if ( r < 0 ) r = -r;  // Difference in red
@@ -77,9 +79,12 @@ void swap( Byte a1[],Byte a2[],int rw,int rh,int w ) {
 
   if ( a1 != a2 ) {
     rw *= 3; w *= 3; // Each pixel is 3 bytes
+    
+    #pragma omp parallel for private(d)
     for ( y = 0 ; y < rh ; y++ ) {
       // Swap row y of the two rectangles
       d = w * y;
+    #pragma omp parallel for private(aux)
       for ( x = 0 ; x < rw ; x++ ) {
         // Swap a single byte of the two rows
         aux = a1[d+x];
@@ -101,8 +106,10 @@ void process( int w,int h,Byte a[], int bw,int bh ) {
     min = INT_MAX; my = y;
     // Blocks up to row y-1 are already placed
     // Find the block whose first row minimizes the difference with row y-1
+    #pragma omp parallel for private(d)
     for ( y2 = y ; y2 < h ; y2 += bh ) {
       d = distance( w, &a[3*(y-1)*w], &a[3*y2*w], 1 );
+      #pragma omp critical
       if ( d < min ) { min = d; my = y2; }
     }
     // Block starting at row my minimizes the difference
@@ -111,12 +118,15 @@ void process( int w,int h,Byte a[], int bw,int bh ) {
   }
 
   // Place each vertical block to minimize difference with previous one
+  
   for ( x = bw ; x < w ; x += bw ) {
     // Blocks up to column x-1 are already placed
     // Find the block whose first column minimizes the difference with column x-1
     min = INT_MAX; mx = x;
+    #pragma omp parallel for private(d)
     for ( x2 = x ; x2 < w ; x2 += bw ) {
       d = distance( h, &a[3*(x-1)], &a[3*x2], w );
+      #pragma omp critical
       if ( d < min ) { min = d; mx = x2; }
     }
     // Block starting at column mx minimizes the difference
