@@ -7,6 +7,7 @@
 
 
 double t1, t2;
+int numHilos;
 typedef unsigned char Byte;
 
 // Read a P6 ppm image file, allocating memory
@@ -80,11 +81,11 @@ void swap( Byte a1[],Byte a2[],int rw,int rh,int w ) {
   if ( a1 != a2 ) {
     rw *= 3; w *= 3; // Each pixel is 3 bytes
     
-    #pragma omp parallel for private(d)
+    #pragma omp parallel for schedule(runtime) private(d)
     for ( y = 0 ; y < rh ; y++ ) {
       // Swap row y of the two rectangles
       d = w * y;
-    #pragma omp parallel for private(aux)
+    #pragma omp parallel for schedule(runtime) private(aux) 
       for ( x = 0 ; x < rw ; x++ ) {
         // Swap a single byte of the two rows
         aux = a1[d+x];
@@ -99,6 +100,7 @@ void swap( Byte a1[],Byte a2[],int rw,int rh,int w ) {
 // bh rows and vertical blocks of bw columns */
 void process( int w,int h,Byte a[], int bw,int bh ) {
   int x,y, x2,y2, mx,my,min, d;
+  
 	t1 = omp_get_wtime();
 	
   // Place each horizontal block to minimize difference with previous one
@@ -106,12 +108,15 @@ void process( int w,int h,Byte a[], int bw,int bh ) {
     min = INT_MAX; my = y;
     // Blocks up to row y-1 are already placed
     // Find the block whose first row minimizes the difference with row y-1
-    #pragma omp parallel for private(d)
+    #pragma omp parallel
+    numHilos = omp_get_num_threads();
+    #pragma omp parallel for schedule(runtime) private(d) 
     for ( y2 = y ; y2 < h ; y2 += bh ) {
       d = distance( w, &a[3*(y-1)*w], &a[3*y2*w], 1 );
       #pragma omp critical
       if ( d < min ) { min = d; my = y2; }
     }
+   
     // Block starting at row my minimizes the difference
     // Place the block in its place by swapping it with the block starting at row y
     swap( &a[3*y*w],&a[3*my*w],w,bh,w );
@@ -123,7 +128,7 @@ void process( int w,int h,Byte a[], int bw,int bh ) {
     // Blocks up to column x-1 are already placed
     // Find the block whose first column minimizes the difference with column x-1
     min = INT_MAX; mx = x;
-    #pragma omp parallel for private(d)
+    #pragma omp parallel for schedule(runtime) private(d)
     for ( x2 = x ; x2 < w ; x2 += bw ) {
       d = distance( h, &a[3*(x-1)], &a[3*x2], w );
       #pragma omp critical
@@ -137,6 +142,7 @@ void process( int w,int h,Byte a[], int bw,int bh ) {
   
 	t2 = omp_get_wtime();
 	printf("time: %f \n", t2 - t1);
+	printf("Número de hilos = %d \n", numHilos);
 }
 
 
