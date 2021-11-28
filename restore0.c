@@ -8,6 +8,9 @@
 
 double t1, t2;
 typedef unsigned char Byte;
+float t1;
+float t2;
+
 
 // Read a P6 ppm image file, allocating memory
 // It returns NULL if there is an error
@@ -24,7 +27,7 @@ Byte *read_ppm(char file[],int *width,int *height) {
     if (strcmp(tipo,"P6\n")) {
       fprintf(stderr,"ERROR: \"%s\" should be a PPM of type P6 instead of %s\n",file,tipo);
     } else {
-      fscanf(f," #%*[^\n]"); // skip possible comment
+      fscanf(f," #%*[^\n]");                  // skip possible comment
       fscanf(f,"%d%d%*d%*c",width,height);
       n=(size_t)*width**height*3;
       a=(Byte*)malloc(n*sizeof(Byte));
@@ -92,39 +95,15 @@ void swap( Byte a1[],Byte a2[],int rw,int rh,int w ) {
 
 // Process image a, of width w and height h, considering horizontal blocks of
 // bh rows and vertical blocks of bw columns */
+
 void process( int w,int h,Byte a[], int bw,int bh ) {
   int x,y, x2,y2, mx,my,min, d;
 	t1 = omp_get_wtime();
 	
-  // Place each horizontal block to minimize difference with previous one
-  for ( y = bh ; y < h ; y += bh ) {
-    min = INT_MAX; my = y;
-    // Blocks up to row y-1 are already placed
-    // Find the block whose first row minimizes the difference with row y-1
-    for ( y2 = y ; y2 < h ; y2 += bh ) {
-      d = distance( w, &a[3*(y-1)*w], &a[3*y2*w], 1 );
-      if ( d < min ) { min = d; my = y2; }
-    }
-    // Block starting at row my minimizes the difference
-    // Place the block in its place by swapping it with the block starting at row y
-    swap( &a[3*y*w],&a[3*my*w],w,bh,w );
-  }
+  //Function body
+  //Function body
+  //Function body
 
-  // Place each vertical block to minimize difference with previous one
-  for ( x = bw ; x < w ; x += bw ) {
-    // Blocks up to column x-1 are already placed
-    // Find the block whose first column minimizes the difference with column x-1
-    min = INT_MAX; mx = x;
-    for ( x2 = x ; x2 < w ; x2 += bw ) {
-      d = distance( h, &a[3*(x-1)], &a[3*x2], w );
-      if ( d < min ) { min = d; mx = x2; }
-    }
-    // Block starting at column mx minimizes the difference
-    // Place the block in its place by swapping it with the block starting at column x
-    swap( &a[3*x],&a[3*mx],bw,h,w );
-  }
-  
-  
 	t2 = omp_get_wtime();
 	printf("time: %f \n", t2 - t1);
 }
