@@ -100,9 +100,8 @@ void swap( Byte a1[],Byte a2[],int rw,int rh,int w ) {
 // bh rows and vertical blocks of bw columns */
 void process( int w,int h,Byte a[], int bw,int bh ) {
   int x,y, x2,y2, mx,my,min, d;
-  
 	t1 = omp_get_wtime();
-	
+	 
   // Place each horizontal block to minimize difference with previous one
   for ( y = bh ; y < h ; y += bh ) {
     min = INT_MAX; my = y;
@@ -116,14 +115,11 @@ void process( int w,int h,Byte a[], int bw,int bh ) {
       #pragma omp critical
       if ( d < min ) { min = d; my = y2; }
     }
-   
     // Block starting at row my minimizes the difference
     // Place the block in its place by swapping it with the block starting at row y
     swap( &a[3*y*w],&a[3*my*w],w,bh,w );
   }
-
   // Place each vertical block to minimize difference with previous one
-  
   for ( x = bw ; x < w ; x += bw ) {
     // Blocks up to column x-1 are already placed
     // Find the block whose first column minimizes the difference with column x-1
@@ -138,8 +134,6 @@ void process( int w,int h,Byte a[], int bw,int bh ) {
     // Place the block in its place by swapping it with the block starting at column x
     swap( &a[3*x],&a[3*mx],bw,h,w );
   }
-  
-  
 	t2 = omp_get_wtime();
 	printf("time: %f \n", t2 - t1);
 	printf("Número de hilos = %d \n", numHilos);
