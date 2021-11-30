@@ -99,34 +99,56 @@ void swap( Byte a1[],Byte a2[],int rw,int rh,int w ) {
 // Process image a, of width w and height h, considering horizontal blocks of
 // bh rows and vertical blocks of bw columns */
 void process( int w,int h,Byte a[], int bw,int bh ) {
-  int x,y, x2,y2, mx,my,min, d;
-	t1 = omp_get_wtime();
-	 
-  // Place each horizontal block to minimize difference with previous one
-  for ( y = bh ; y < h ; y += bh ) {
-    min = INT_MAX; my = y;
-    // Blocks up to row y-1 are already placed
-    // Find the block whose first row minimizes the difference with row y-1
-    #pragma omp parallel
-    numHilos = omp_get_num_threads();
-    #pragma omp parallel for schedule(runtime) private(d) 
-    
-    //MOSTRAR VALOR Y POR PANTALLA
-    printf("Valor Y: %d", y );
-    for ( y2 = y ; y2 < h ; y2 += bh ) {
-      
-      //MOSTRAR VALOR Y2
-      printf("Valor Y2: %d", y2 );
+  int x,y, x2,y2, mx,my, d, min;
+	
+  #pragma omp parallel  
+  numHilos = omp_get_num_threads();
 
-      d = distance( w, &a[3*(y-1)*w], &a[3*y2*w], 1 );
-      #pragma omp critical
-      if ( d < min ) { min = d; my = y2; }
-    }
-    // Block starting at row my minimizes the difference
-    // Place the block in its place by swapping it with the block starting at row y
-    swap( &a[3*y*w],&a[3*my*w],w,bh,w );
+  int vmind[numHilos],vmaxd[numHilos],iter[numHilos];
+  int id[numHilos];
+  int naux;
+  
+  for (int i = 0;i < numHilos;i++) {	vmind[i] = INT_MAX;	iter[i] = 0; id[i] = 0;	}
+  
+  t1 = omp_get_wtime();
+		
+	// Place each horizontal block to minimize difference with previous one
+	for ( y = bh ; y < h ; y += bh ) {
+	  my = y;
+	  // Blocks up to row y-1 are already placed
+	  // Find the block whose first row minimizes the difference with row y-1
+	
+	  #pragma omp parallel for schedule(runtime) private(d, naux)
+	  for ( y2 = y ; y2 < h ; y2 += bh ) {
+	    d = distance( w, &a[3*(y-1)*w], &a[3*y2*w], 1 );
+	    
+	    naux = omp_get_thread_num();
+	    
+	    id[naux] = naux;
+	    iter[naux] += 1;
+	    
+	    
+	    if ( d < vmind[naux] ) { vmind[naux] = d; }
+	    if ( d > vmaxd[naux] ) { vmaxd[naux] = d; }
+
+
+	  }
+
+  // Block starting at row my minimizes the difference
+  // Place the block in its place by swapping it with the block starting at row y
+  swap( &a[3*y*w],&a[3*my*w],w,bh,w );
+  
+  if (y == bh) {
+  	for(int j = 0; j < numHilos;j++){
+    		printf("Hilo %d: %d iteraciones, con valores entre %d y %d \n", id[j], iter[j], vmind[j], vmaxd[j]  );
+   
+  	}
+  
+  	}
   }
+
   // Place each vertical block to minimize difference with previous one
+  
   for ( x = bw ; x < w ; x += bw ) {
     // Blocks up to column x-1 are already placed
     // Find the block whose first column minimizes the difference with column x-1
@@ -141,6 +163,8 @@ void process( int w,int h,Byte a[], int bw,int bh ) {
     // Place the block in its place by swapping it with the block starting at column x
     swap( &a[3*x],&a[3*mx],bw,h,w );
   }
+  
+  
 	t2 = omp_get_wtime();
 	printf("time: %f \n", t2 - t1);
 	printf("Número de hilos = %d \n", numHilos);

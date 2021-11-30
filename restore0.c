@@ -101,11 +101,12 @@ void process( int w,int h,Byte a[], int bw,int bh ) {
 	t1 = omp_get_wtime();
 	
   //Function body
-  //Function body
+  numHilos = omp_get_num_threads();
   //Function body
 
 	t2 = omp_get_wtime();
 	printf("time: %f \n", t2 - t1);
+  printf("Número de hilos = %d \n", numHilos);
 }
 
 
